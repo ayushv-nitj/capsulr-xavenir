@@ -360,17 +360,23 @@ function CapsuleCard({
 }: any) {
   // Force re-render every second for countdown
   const [tick, setTick] = useState(0);
+  const [timeLeft, setTimeLeft] = useState<any>(null);
   
   useEffect(() => {
     if (capsule.isLocked && capsule.unlockAt) {
+      // Update timeLeft immediately
+      setTimeLeft(getTimeLeft(capsule.unlockAt));
+      
       const interval = setInterval(() => {
         setTick(t => t + 1);
+        // Recalculate timeLeft on every tick
+        setTimeLeft(getTimeLeft(capsule.unlockAt));
       }, 1000);
       return () => clearInterval(interval);
+    } else {
+      setTimeLeft(null);
     }
-  }, [capsule.isLocked, capsule.unlockAt]);
-
-  const timeLeft = capsule.isLocked && capsule.unlockAt ? getTimeLeft(capsule.unlockAt) : null;
+  }, [capsule.isLocked, capsule.unlockAt, getTimeLeft]);
 
   return (
     <motion.div

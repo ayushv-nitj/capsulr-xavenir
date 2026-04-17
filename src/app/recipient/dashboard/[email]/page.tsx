@@ -152,6 +152,7 @@ export default function RecipientDashboard() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {capsules.map((capsule, i) => {
+              // Force recalculation on every tick for real-time updates
               const timeLeft = capsule.isLocked && capsule.unlockAt ? getTimeLeft(capsule.unlockAt) : null;
               
               return (
@@ -161,6 +162,7 @@ export default function RecipientDashboard() {
                   timeLeft={timeLeft}
                   email={email as string}
                   index={i}
+                  tick={tick} // Pass tick to force re-render
                   onClick={() => router.push(`/recipient/${capsule._id}/${email}`)}
                 />
               );
@@ -182,7 +184,7 @@ export default function RecipientDashboard() {
   );
 }
 
-function CapsuleCard({ capsule, timeLeft, email, index, onClick }: any) {
+function CapsuleCard({ capsule, timeLeft, email, index, tick, onClick }: any) {
   const gradients = [
     "from-pink-500 via-rose-500 to-orange-500",
     "from-indigo-500 via-purple-500 to-pink-500",
