@@ -78,10 +78,15 @@ router.get("/recipient-list/:email", async (req, res) => {
 // GET ALL CAPSULES FOR USER (DASHBOARD)
 router.get("/", auth, async (req, res) => {
   try {
+    // Get user email for recipient check
+    const User = require("../models/User");
+    const user = await User.findById(req.userId);
+    
     const capsules = await Capsule.find({
       $or: [
         { owner: req.userId },
-        { contributors: req.userId }
+        { contributors: req.userId },
+        { recipients: user.email }  // Include capsules where user is a recipient
       ]
     }).sort({ createdAt: -1 });
 
@@ -114,6 +119,18 @@ router.get("/:id", auth, async (req, res) => {
       return res.status(404).json({ message: "Capsule not found" });
     }
 
+    // Check access permissions
+    const isOwner = capsule.owner._id.toString() === req.userId;
+    const isContributor = capsule.contributors.some(c => c._id.toString() === req.userId);
+    const User = require("../models/User");
+    const user = await User.findById(req.userId);
+    const isRecipient = capsule.recipients.includes(user.email);
+
+    // Allow access if user is owner, contributor, or recipient
+    if (!isOwner && !isContributor && !isRecipient) {
+      return res.status(403).json({ message: "Not authorized to access this capsule" });
+    }
+
     // 🔐 Auto-unlock when time passes
     const now = new Date();
     if (capsule.isLocked && capsule.unlockAt && now >= capsule.unlockAt) {
@@ -137,7 +154,6 @@ router.get("/:id", auth, async (req, res) => {
     }
   }
 }
-
 
     res.json(capsule);
   } catch (err) {
@@ -213,7 +229,7 @@ router.post("/:id/collaborators", auth, async (req, res) => {
 
     capsule.contributors.push(user._id);
     await capsule.save();
-
+    const uri = process.env.SEND_URI;
     // 📧 SEND EMAIL
   await sendEmail({
   to: email,

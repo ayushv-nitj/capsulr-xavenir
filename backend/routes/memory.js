@@ -33,6 +33,25 @@ router.post("/", auth, async (req, res) => {
       .json({ message: "capsuleId and content are required" });
   }
 
+  // Check if user has permission to add memories
+  const Capsule = require("../models/Capsule");
+  const capsule = await Capsule.findById(capsuleId);
+  
+  if (!capsule) {
+    return res.status(404).json({ message: "Capsule not found" });
+  }
+
+  const isOwner = capsule.owner.toString() === req.userId;
+  const isContributor = capsule.contributors.includes(req.userId);
+  const User = require("../models/User");
+  const user = await User.findById(req.userId);
+  const isRecipient = capsule.recipients.includes(user.email);
+
+  // Allow if: owner, contributor, or recipient when capsule is unlocked
+  if (!isOwner && !isContributor && !(isRecipient && !capsule.isLocked)) {
+    return res.status(403).json({ message: "Not authorized to add memories" });
+  }
+
   const memory = await Memory.create({
     capsuleId,
     type: "text",
@@ -47,11 +66,34 @@ router.post("/", auth, async (req, res) => {
 
 // GET MEMORIES FOR A CAPSULE
 router.get("/:capsuleId", auth, async (req, res) => {
-  const memories = await Memory.find({
-    capsuleId: req.params.capsuleId
-  });
+  try {
+    // Check if user has permission to view memories
+    const Capsule = require("../models/Capsule");
+    const capsule = await Capsule.findById(req.params.capsuleId);
+    
+    if (!capsule) {
+      return res.status(404).json({ message: "Capsule not found" });
+    }
 
-  res.json(memories);
+    const isOwner = capsule.owner.toString() === req.userId;
+    const isContributor = capsule.contributors.includes(req.userId);
+    const User = require("../models/User");
+    const user = await User.findById(req.userId);
+    const isRecipient = capsule.recipients.includes(user.email);
+
+    // Allow if: owner, contributor (always), or recipient when capsule is unlocked
+    if (!isOwner && !isContributor && !(isRecipient && !capsule.isLocked)) {
+      return res.status(403).json({ message: "Not authorized to view memories" });
+    }
+
+    const memories = await Memory.find({
+      capsuleId: req.params.capsuleId
+    });
+
+    res.json(memories);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch memories" });
+  }
 });
 
 
@@ -66,6 +108,25 @@ router.post("/media", auth, upload.single("file"), async (req, res) => {
 
     if (!req.file) {
       return res.status(400).json({ message: "File not received by server" });
+    }
+
+    // Check if user has permission to add memories
+    const Capsule = require("../models/Capsule");
+    const capsule = await Capsule.findById(capsuleId);
+    
+    if (!capsule) {
+      return res.status(404).json({ message: "Capsule not found" });
+    }
+
+    const isOwner = capsule.owner.toString() === req.userId;
+    const isContributor = capsule.contributors.includes(req.userId);
+    const User = require("../models/User");
+    const user = await User.findById(req.userId);
+    const isRecipient = capsule.recipients.includes(user.email);
+
+    // Allow if: owner, contributor, or recipient when capsule is unlocked
+    if (!isOwner && !isContributor && !(isRecipient && !capsule.isLocked)) {
+      return res.status(403).json({ message: "Not authorized to add memories" });
     }
 
     const result = await cloudinary.uploader.upload(req.file.path, {

@@ -280,6 +280,8 @@ function getTimeLeft(unlockAt: string) {
                   gradient={g}
                   index={i}
                   getTimeLeft={getTimeLeft}
+                  currentUserEmail={email}
+                  currentUserId={localStorage.getItem("userId")}
                   onDelete={async () => {
                     if (!confirm("Delete this capsule permanently?")) return;
 
@@ -355,6 +357,8 @@ function CapsuleCard({
   gradient,
   index,
   getTimeLeft,
+  currentUserEmail,
+  currentUserId,
   onDelete,
   onClick,
 }: any) {
@@ -377,6 +381,28 @@ function CapsuleCard({
       setTimeLeft(null);
     }
   }, [capsule.isLocked, capsule.unlockAt, getTimeLeft]);
+
+  // Determine user role
+  const isOwner = capsule.owner === currentUserId;
+  const isContributor = capsule.contributors?.includes(currentUserId);
+  const isRecipient = capsule.recipients?.includes(currentUserEmail);
+  
+  let userRole = "";
+  let roleColor = "";
+  if (isOwner) {
+    userRole = "👑 Owner";
+    roleColor = "text-yellow-400";
+  } else if (isContributor) {
+    userRole = "👥 Collaborator";
+    roleColor = "text-blue-400";
+  } else if (isRecipient) {
+    userRole = "📧 Recipient";
+    roleColor = "text-purple-400";
+  }
+
+  // Recipients can't delete capsules, and can't access locked capsules
+  const canDelete = isOwner;
+  const canAccess = isOwner || isContributor || (isRecipient && !capsule.isLocked);
 
   return (
     <motion.div
@@ -412,7 +438,16 @@ function CapsuleCard({
             )}
           </div>
 
-          <p className="text-white/90 font-medium mb-4">{capsule.theme}</p>
+          <p className="text-white/90 font-medium mb-2">{capsule.theme}</p>
+          
+          {/* User Role */}
+          {userRole && (
+            <div className="mb-4">
+              <span className={`text-xs font-semibold ${roleColor}`}>
+                {userRole}
+              </span>
+            </div>
+          )}
 
           {/* Countdown */}
           {timeLeft && (
@@ -458,23 +493,45 @@ function CapsuleCard({
 
           {/* Action Buttons */}
           <div className="flex gap-2">
-            <Link
-              href={`/dashboard/edit/${capsule._id}`}
-              onClick={(e) => e.stopPropagation()}
-              className="flex-1 text-center py-2 rounded-lg bg-white/20 hover:bg-white/30 text-white text-sm font-medium transition backdrop-blur-sm border border-white/20"
-            >
-              ✏️ Edit
-            </Link>
+            {/* Recipients can't access locked capsules */}
+            {!canAccess ? (
+              <div className="flex-1 text-center py-2 rounded-lg bg-gray-500/20 text-gray-400 text-sm font-medium backdrop-blur-sm border border-gray-500/20">
+                🔒 Locked for Recipients
+              </div>
+            ) : (
+              <>
+                {/* Only owners and collaborators can edit */}
+                {(isOwner || isContributor) && (
+                  <Link
+                    href={`/dashboard/edit/${capsule._id}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex-1 text-center py-2 rounded-lg bg-white/20 hover:bg-white/30 text-white text-sm font-medium transition backdrop-blur-sm border border-white/20"
+                  >
+                    ✏️ Edit
+                  </Link>
+                )}
 
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete();
-              }}
-              className="flex-1 py-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-white text-sm font-medium transition backdrop-blur-sm border border-red-400/30"
-            >
-              🗑️ Delete
-            </button>
+                {/* Only owners can delete */}
+                {canDelete && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete();
+                    }}
+                    className="flex-1 py-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-white text-sm font-medium transition backdrop-blur-sm border border-red-400/30"
+                  >
+                    🗑️ Delete
+                  </button>
+                )}
+
+                {/* Recipients get a different button */}
+                {isRecipient && !isOwner && !isContributor && (
+                  <div className="flex-1 text-center py-2 rounded-lg bg-purple-500/20 text-purple-300 text-sm font-medium backdrop-blur-sm border border-purple-400/30">
+                    📧 View Only
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       </div>

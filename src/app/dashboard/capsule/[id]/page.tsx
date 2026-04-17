@@ -406,6 +406,23 @@ const saveRecipients = async () => {
     );
   }
 
+  // Access control: Recipients cannot access locked capsules
+  if (isRecipient && !canEdit && capsule.isLocked) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
+        <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-8 text-center max-w-md">
+          <div className="text-6xl mb-4">🔒</div>
+          <h2 className="text-2xl font-bold text-red-400 mb-2">Capsule Locked</h2>
+          <p className="text-gray-400 mb-4">This capsule is currently locked and will unlock on:</p>
+          <p className="text-white font-semibold">
+            {new Date(capsule.unlockAt || "").toLocaleString()}
+          </p>
+          <p className="text-sm text-gray-500 mt-4">You'll receive an email when it unlocks!</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       {/* Animated Background */}
@@ -695,8 +712,8 @@ const saveRecipients = async () => {
           </motion.div>
         )}
 
-        {/* Composer (Owner/Contributors only) */}
-        {canEdit && (
+        {/* Composer (Owner/Contributors + Recipients when unlocked) */}
+        {(canEdit || (isRecipient && !capsule?.isLocked)) && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -911,7 +928,8 @@ onDelete: () => void;
 currentUserEmail: string;
 }) {
 const [showComments, setShowComments] = useState(false);
-const canInteract = (isRecipient || canEdit) && isUnlocked;
+const canInteract = (canEdit) || (isRecipient && isUnlocked);
+const canAddMemories = (canEdit) || (isRecipient && isUnlocked);
 const emojiOptions = ["❤️", "👍", "😂", "😮", "😢", "🔥"];
 // Group reactions by emoji
 const groupedReactions = reactions.reduce((acc, r) => {
