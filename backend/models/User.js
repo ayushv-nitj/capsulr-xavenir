@@ -6,7 +6,8 @@ const userSchema = new mongoose.Schema({
     type: String,
     unique: true
   },
-  password: String,
+  password: { type: String, default: null }, // null for Google OAuth users
+  googleId: { type: String, default: null },
   profileImage: {
     type: String,
     default: ""
@@ -16,6 +17,7 @@ const userSchema = new mongoose.Schema({
     default: Date.now
   }
 }, { timestamps: true });
+
 
 module.exports =
   mongoose.models.User ||

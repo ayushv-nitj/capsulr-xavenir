@@ -261,8 +261,19 @@ const fetchCommentsForMemory = async (memoryId: string) => {
 
   useEffect(() => {
     fetchCapsule();
-    fetchMemories();
   }, [id]);
+
+  // Fetch memories only after capsule is loaded and if user has access
+  useEffect(() => {
+    if (!capsule) return;
+    
+    // Don't fetch memories if recipient and capsule is locked
+    if (isRecipient && !canEdit && capsule.isLocked) {
+      return;
+    }
+    
+    fetchMemories();
+  }, [capsule?.isLocked, capsule?._id]);
 
   useEffect(() => {
     if (!capsule?.unlockAt || !capsule?.isLocked) return;

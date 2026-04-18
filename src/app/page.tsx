@@ -75,7 +75,7 @@ export default function LandingPage() {
             <motion.button
               whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(139, 92, 246, 0.5)" }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => router.push("/register")}
+              onClick={() => router.push("/login")}
               className="px-6 py-2 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white rounded-full shadow-lg hover:shadow-purple-500/50 transition-all"
             >
               Get Started
@@ -134,7 +134,7 @@ export default function LandingPage() {
               boxShadow: "0 0 40px rgba(139, 92, 246, 0.6)",
             }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => router.push("/register")}
+            onClick={() => router.push("/login")}
             className="px-10 py-5 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white text-lg font-semibold rounded-full shadow-2xl hover:shadow-purple-500/50 transition-all relative group"
           >
             <span className="relative z-10">Start Creating Capsules →</span>
@@ -171,8 +171,8 @@ export default function LandingPage() {
               </div>
 
               <p className="text-gray-300 text-left mt-4">
-                "A collection of memories from our graduation day. Can't wait to
-                relive these moments with everyone..."
+                &ldquo;A collection of memories from our graduation day. Can&apos;t wait to
+                relive these moments with everyone...&rdquo;
               </p>
 
               <div className="flex items-center gap-2 mt-6">
@@ -260,7 +260,7 @@ export default function LandingPage() {
                   boxShadow: "0 0 40px rgba(139, 92, 246, 0.6)",
                 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => router.push("/register")}
+                onClick={() => router.push("/login")}
                 className="px-10 py-5 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white text-lg font-semibold rounded-full shadow-2xl hover:shadow-purple-500/50 transition-all"
               >
                 Start Your Journey Now →
@@ -278,7 +278,7 @@ export default function LandingPage() {
 
             <p className="text-lg text-gray-300 leading-relaxed mb-8 max-w-3xl mx-auto text-center">
               Capsulr was born from a simple idea: memories are precious, and
-              they deserve to be preserved in a way that's both meaningful and
+              they deserve to be preserved in a way that&apos;s both meaningful and
               delightful. We believe that the best moments in life are meant to
               be shared and revisited.
             </p>
@@ -332,7 +332,7 @@ export default function LandingPage() {
                   {/* Info */}
                   <div className="flex-1 text-center md:text-left">
                     <h5 className="text-2xl font-bold mb-2">Ayush Verma</h5>
-                    <p className="text-purple-400 mb-4">Full Stack Developer & Creator of Capsulr</p>
+                    <p className="text-purple-400 mb-4">Full Stack Developer &amp; Creator of Capsulr</p>
                     <p className="text-gray-300 leading-relaxed mb-6">
                       Passionate about creating meaningful digital experiences that help people preserve and share their most precious moments. Building Capsulr to make memory preservation beautiful and accessible.
                     </p>
@@ -382,7 +382,7 @@ export default function LandingPage() {
           <p className="text-gray-400 mb-6">
             Preserving memories, one capsule at a time
           </p>
-           <p className="text-gray-400 mb-6">
+          <p className="text-gray-400 mb-6">
             Made with ❤️ by Ayush Verma
           </p>
 
@@ -558,7 +558,7 @@ const steps = [
   {
     number: 1,
     title: "Create Your Account",
-    description: "Sign up with your email in just seconds. No credit card required. Start preserving memories immediately.",
+    description: "Sign in with Google in just one click. No passwords needed. Start preserving memories immediately.",
     icon: "📝",
     gradient: "bg-gradient-to-br from-indigo-900/30 to-purple-900/30 backdrop-blur-xl"
   },
