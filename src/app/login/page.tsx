@@ -242,30 +242,6 @@ router.push("/dashboard");
       {/* Floating Orbs Decoration */}
       <div className="fixed top-20 right-20 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
       <div className="fixed bottom-20 left-20 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl animate-pulse animation-delay-2000"></div>
-
-      <style jsx global>{`
-        @keyframes blob {
-          0%,
-          100% {
-            transform: translate(0, 0) scale(1);
-          }
-          33% {
-            transform: translate(30px, -50px) scale(1.1);
-          }
-          66% {
-            transform: translate(-20px, 20px) scale(0.9);
-          }
-        }
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-        .animation-delay-4000 {
-          animation-delay: 4s;
-        }
-      `}</style>
     </div>
   );
 }

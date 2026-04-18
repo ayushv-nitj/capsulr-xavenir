@@ -28,7 +28,15 @@ export default function Dashboard() {
   // Real-time event handlers
   const handleCapsuleCreated = useCallback((data: any) => {
     console.log('New capsule created:', data);
-    setCapsules(prev => [data.capsule, ...prev]);
+    // Check if capsule already exists before adding
+    setCapsules(prev => {
+      const exists = prev.some(c => c._id === data.capsule._id);
+      if (exists) {
+        console.log('Capsule already exists, skipping duplicate');
+        return prev;
+      }
+      return [data.capsule, ...prev];
+    });
     // Show notification
     if (typeof window !== 'undefined' && 'Notification' in window) {
       new Notification('New Capsule!', {
@@ -40,7 +48,15 @@ export default function Dashboard() {
 
   const handleCapsuleShared = useCallback((data: any) => {
     console.log('Capsule shared with you:', data);
-    setCapsules(prev => [data.capsule, ...prev]);
+    // Check if capsule already exists before adding
+    setCapsules(prev => {
+      const exists = prev.some(c => c._id === data.capsule._id);
+      if (exists) {
+        console.log('Capsule already exists, skipping duplicate');
+        return prev;
+      }
+      return [data.capsule, ...prev];
+    });
     // Show notification
     if (typeof window !== 'undefined' && 'Notification' in window) {
       new Notification('Capsule Shared!', {
