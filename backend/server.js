@@ -42,18 +42,61 @@ app.listen(PORT, () => {
 setInterval(async () => {
   // Use correct case for the Capsule model so it works on case-sensitive filesystems (e.g. Linux in production)
   const Capsule = require("./models/Capsule");
+  const User = require("./models/User");
   const { sendEmail } = require("./utils/mailer");
+  const pusher = require("./config/pusher");
   
   const now = new Date();
   const capsulestoUnlock = await Capsule.find({
     isLocked: true,
     unlockAt: { $lte: now }
-  });
+  }).populate("owner", "name email profileImage")
+    .populate("contributors", "name email profileImage");
 
   for (const capsule of capsulestoUnlock) {
     capsule.isLocked = false;
     capsule.isUnlocked = true;
     await capsule.save();
+
+    // Collect all users who should be notified
+    const notifyEmails = [];
+    
+    // Add owner
+    if (capsule.owner?.email) {
+      notifyEmails.push(capsule.owner.email);
+    }
+    
+    // Add contributors
+    if (capsule.contributors?.length) {
+      capsule.contributors.forEach(contributor => {
+        if (contributor.email) notifyEmails.push(contributor.email);
+      });
+    }
+    
+    // Add recipients
+    if (capsule.recipients?.length) {
+      notifyEmails.push(...capsule.recipients);
+    }
+
+    // Send real-time unlock notifications
+    try {
+      for (const email of notifyEmails) {
+        await pusher.trigger(`user-${email}`, 'capsule-unlocked', {
+          capsule: {
+            _id: capsule._id,
+            title: capsule.title,
+            theme: capsule.theme,
+            isLocked: false,
+            isUnlocked: true,
+            unlockAt: capsule.unlockAt
+          },
+          message: `🎉 "${capsule.title}" has unlocked!`
+        });
+      }
+      console.log(`Unlock notifications sent to: ${notifyEmails.join(', ')}`);
+    } catch (error) {
+      console.error('Error sending unlock notifications:', error);
+    }
 
     // Email all recipients
     if (capsule.recipients?.length) {

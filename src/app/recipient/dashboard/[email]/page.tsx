@@ -1,8 +1,9 @@
 "use client";
 import { API_URL } from "@/lib/api";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { usePusher } from "@/hooks/usePusher";
 
 type TimeLeft = {
   days: number;
@@ -36,6 +37,48 @@ export default function RecipientDashboard() {
   useEffect(() => {
     const interval = setInterval(() => setTick(t => t + 1), 1000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Real-time event handlers
+  const handleCapsuleShared = useCallback((data: any) => {
+    console.log('Capsule shared with recipient:', data);
+    setCapsules(prev => [data.capsule, ...prev]);
+    // Show notification
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      new Notification('New Capsule!', {
+        body: data.message,
+        icon: '/favicon.ico'
+      });
+    }
+  }, []);
+
+  const handleCapsuleUnlocked = useCallback((data: any) => {
+    console.log('Capsule unlocked for recipient:', data);
+    setCapsules(prev => prev.map(capsule => 
+      capsule._id === data.capsule._id 
+        ? { ...capsule, isLocked: false, isUnlocked: true }
+        : capsule
+    ));
+    // Show notification
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      new Notification('Capsule Unlocked!', {
+        body: data.message,
+        icon: '/favicon.ico'
+      });
+    }
+  }, []);
+
+  // Set up Pusher real-time events
+  usePusher(email as string, {
+    onCapsuleShared: handleCapsuleShared,
+    onCapsuleUnlocked: handleCapsuleUnlocked
+  });
+
+  // Request notification permission
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
   }, []);
 
   useEffect(() => {

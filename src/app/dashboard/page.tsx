@@ -1,12 +1,13 @@
 "use client";
 import { API_URL } from "@/lib/api";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { isLoggedIn } from "@/lib/auth";
 import { getAvatarUrl } from "@/lib/avatar";
 import { motion, AnimatePresence } from "framer-motion";
+import { usePusher } from "@/hooks/usePusher";
 
 export default function Dashboard() {
   const [profileImage, setProfileImage] = useState<string | null>(null);
@@ -22,6 +23,61 @@ export default function Dashboard() {
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 1000);
     return () => clearInterval(id);
+  }, []);
+
+  // Real-time event handlers
+  const handleCapsuleCreated = useCallback((data: any) => {
+    console.log('New capsule created:', data);
+    setCapsules(prev => [data.capsule, ...prev]);
+    // Show notification
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      new Notification('New Capsule!', {
+        body: data.message,
+        icon: '/favicon.ico'
+      });
+    }
+  }, []);
+
+  const handleCapsuleShared = useCallback((data: any) => {
+    console.log('Capsule shared with you:', data);
+    setCapsules(prev => [data.capsule, ...prev]);
+    // Show notification
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      new Notification('Capsule Shared!', {
+        body: data.message,
+        icon: '/favicon.ico'
+      });
+    }
+  }, []);
+
+  const handleCapsuleUnlocked = useCallback((data: any) => {
+    console.log('Capsule unlocked:', data);
+    setCapsules(prev => prev.map(capsule => 
+      capsule._id === data.capsule._id 
+        ? { ...capsule, isLocked: false, isUnlocked: true }
+        : capsule
+    ));
+    // Show notification
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      new Notification('Capsule Unlocked!', {
+        body: data.message,
+        icon: '/favicon.ico'
+      });
+    }
+  }, []);
+
+  // Set up Pusher real-time events
+  usePusher(email, {
+    onCapsuleCreated: handleCapsuleCreated,
+    onCapsuleShared: handleCapsuleShared,
+    onCapsuleUnlocked: handleCapsuleUnlocked
+  });
+
+  // Request notification permission
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
   }, []);
 
 function getTimeLeft(unlockAt: string) {
