@@ -41,6 +41,7 @@ app.use("/api/capsules", require("./routes/capsule"));
 app.use("/api/memories", require("./routes/memory"));
 app.use("/api/reactions", require("./routes/reaction"));
 app.use("/api/comments", require("./routes/comment"));
+app.use("/api/ai", require("./routes/ai"));
 app.use("/api/ghostwalls", require("./routes/ghostwall"));
 
 mongoose.connect(process.env.MONGO_URI)
