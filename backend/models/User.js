@@ -11,8 +11,13 @@ const userSchema = new mongoose.Schema({
   profileImage: {
     type: String,
     default: ""
+  },
+  lastActive: {
+    type: Date,
+    default: Date.now
   }
-});
+}, { timestamps: true });
+
 
 module.exports =
   mongoose.models.User ||
