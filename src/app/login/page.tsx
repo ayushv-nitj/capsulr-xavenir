@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isLoggedIn } from "@/lib/auth";
 import { API_URL } from "@/lib/api";
@@ -15,6 +15,8 @@ declare global {
 export default function Login() {
   const router = useRouter();
   const googleBtnRef = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (isLoggedIn()) {
@@ -28,14 +30,22 @@ export default function Login() {
     script.async = true;
     script.defer = true;
     script.onload = initGoogle;
+    script.onerror = () => setError("Failed to load Google Sign-In. Check your internet connection.");
     document.body.appendChild(script);
 
     return () => {
-      document.body.removeChild(script);
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
     };
   }, []);
 
   const initGoogle = () => {
+    if (!window.google) {
+      setError("Google Sign-In failed to initialize.");
+      return;
+    }
+
     window.google.accounts.id.initialize({
       client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
       callback: handleCredentialResponse,
@@ -51,6 +61,8 @@ export default function Login() {
   };
 
   const handleCredentialResponse = async (response: { credential: string }) => {
+    setError("");
+    setLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/auth/google`, {
         method: "POST",
@@ -58,12 +70,12 @@ export default function Login() {
         body: JSON.stringify({ idToken: response.credential }),
       });
 
+      const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data?.message || "Google sign-in failed");
+        throw new Error(data?.message || `Server error: ${res.status}`);
       }
 
-      const data = await res.json();
       localStorage.setItem("token", data.token);
       localStorage.setItem("name", data.user.name);
       localStorage.setItem("email", data.user.email);
@@ -71,7 +83,9 @@ export default function Login() {
       localStorage.setItem("profileImage", data.user.profileImage || "");
       router.push("/dashboard");
     } catch (err: any) {
-      console.error(err?.message || "Something went wrong");
+      setError(err?.message || "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -133,8 +147,30 @@ export default function Login() {
             transition={{ delay: 0.4 }}
             className="flex flex-col items-center gap-4"
           >
-            {/* Google button rendered here by the GSI library */}
-            <div ref={googleBtnRef} className="mt-2" />
+            {/* Loading state */}
+            {loading ? (
+              <div className="flex items-center gap-3 py-3 text-gray-300">
+                <svg className="animate-spin h-5 w-5 text-purple-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Signing you in...</span>
+              </div>
+            ) : (
+              /* Google button rendered here by the GSI library */
+              <div ref={googleBtnRef} className="mt-2" />
+            )}
+
+            {/* Error Message */}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="w-full p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-center"
+              >
+                <p className="text-sm text-red-400">{error}</p>
+              </motion.div>
+            )}
 
             <p className="text-xs text-gray-500 text-center mt-2">
               By signing in, you agree to our{" "}

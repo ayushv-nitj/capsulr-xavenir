@@ -1,13 +1,11 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
-const { OAuth2Client } = require("google-auth-library");
 const User = require("../models/User");
 
 const router = express.Router();
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // GOOGLE SIGN-IN
-// Frontend sends the Google ID token; we verify it and return our own JWT.
+// Verify the Google ID token via Google's tokeninfo endpoint (no extra package needed).
 router.post("/google", async (req, res) => {
   const { idToken } = req.body;
 
@@ -16,16 +14,24 @@ router.post("/google", async (req, res) => {
   }
 
   try {
-    // Verify the Google token
-    const ticket = await client.verifyIdToken({
-      idToken,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
+    // Call Google's public tokeninfo endpoint to validate the token
+    const googleRes = await fetch(
+      `https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`
+    );
+    const payload = await googleRes.json();
 
-    const payload = ticket.getPayload();
+    if (!googleRes.ok || payload.error) {
+      return res.status(401).json({ message: "Invalid Google token" });
+    }
+
+    // Ensure the token was issued for our app
+    if (payload.aud !== process.env.GOOGLE_CLIENT_ID) {
+      return res.status(401).json({ message: "Token audience mismatch" });
+    }
+
     const { sub: googleId, email, name, picture } = payload;
 
-    // Find existing user or create a new one (no password needed)
+    // Find existing user or create a new one
     let user = await User.findOne({ email });
 
     if (!user) {
@@ -36,13 +42,13 @@ router.post("/google", async (req, res) => {
         profileImage: picture || "",
       });
     } else if (!user.googleId) {
-      // Existing email-account — link Google ID
+      // Link Google ID to existing account
       user.googleId = googleId;
       if (!user.profileImage && picture) user.profileImage = picture;
       await user.save();
     }
 
-    // Issue our own JWT (same shape as before so middleware is unchanged)
+    // Issue our own JWT (same shape as before — all other middleware unchanged)
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
 
     res.json({
@@ -56,7 +62,7 @@ router.post("/google", async (req, res) => {
     });
   } catch (err) {
     console.error("Google auth error:", err);
-    res.status(401).json({ message: "Invalid Google token" });
+    res.status(500).json({ message: "Authentication failed" });
   }
 });
 
