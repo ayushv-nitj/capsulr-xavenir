@@ -4,6 +4,9 @@ import { API_URL } from "@/lib/api";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import AIMemoryPrompts from "@/components/AIMemoryPrompts";
+import AIContentEnhancer from "@/components/AIContentEnhancer";
+import AITitleSuggestions from "@/components/AITitleSuggestions";
 
 export default function CreateCapsule() {
   const router = useRouter();
@@ -21,6 +24,7 @@ export default function CreateCapsule() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showAIEnhancer, setShowAIEnhancer] = useState(false);
 
   const addRecipient = () => {
     if (!recipientEmail.trim()) return;
@@ -138,6 +142,14 @@ export default function CreateCapsule() {
             </p>
           </div>
 
+          {/* AI Memory Prompts */}
+          <AIMemoryPrompts
+            onSelectPrompt={(prompt) => {
+              setTitle(prompt.title);
+              setTheme(prompt.suggestedTheme);
+            }}
+          />
+
           {/* Form Card */}
           <div className="relative">
             {/* Glow Effect */}
@@ -147,9 +159,18 @@ export default function CreateCapsule() {
               <form onSubmit={submit} className="space-y-6">
                 {/* Title */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Title <span className="text-red-400">*</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-300">
+                      Title <span className="text-red-400">*</span>
+                    </label>
+                    {theme && (
+                      <AITitleSuggestions
+                        content={title}
+                        theme={theme}
+                        onSelectTitle={(newTitle) => setTitle(newTitle)}
+                      />
+                    )}
+                  </div>
                   <input
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
@@ -170,6 +191,37 @@ export default function CreateCapsule() {
                     className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
                   />
                 </div>
+
+                {/* AI Content Enhancer Toggle */}
+                {(title || theme) && (
+                  <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-400/20">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h4 className="text-sm font-semibold text-white flex items-center gap-2">
+                          <span>🤖</span>
+                          <span>AI Content Enhancement</span>
+                        </h4>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Get AI-powered suggestions to make your capsule more meaningful
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowAIEnhancer(!showAIEnhancer)}
+                        className="text-emerald-300 hover:text-emerald-200 transition"
+                      >
+                        {showAIEnhancer ? "Hide" : "Show"}
+                      </button>
+                    </div>
+                    
+                    {showAIEnhancer && (
+                      <AIContentEnhancer
+                        content={`${title} - ${theme}`}
+                        theme={theme}
+                      />
+                    )}
+                  </div>
+                )}
 
                 {/* Unlock Date & Time */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -8,11 +8,14 @@ const userSchema = new mongoose.Schema({
   },
   password: String,
   profileImage: {
-  type: String,
-  default: ""
-}
-
-});
+    type: String,
+    default: ""
+  },
+  lastActive: {
+    type: Date,
+    default: Date.now
+  }
+}, { timestamps: true });
 
 module.exports =
   mongoose.models.User ||
