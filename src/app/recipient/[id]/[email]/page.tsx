@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { API_URL } from "@/lib/api";
+
 type TimeLeft = {
   days: number;
   hours: number;
@@ -25,37 +26,58 @@ function getTimeLeft(unlockAt: string): TimeLeft {
 export default function RecipientView() {
   const { id, email } = useParams();
   const [capsule, setCapsule] = useState<any>(null);
-  const [memories, setMemories] = useState<any[]>([]);
+  const [memories, setMemories] = useState<any[]>([]); // Initialize as empty array
   const [timeLeft, setTimeLeft] = useState<TimeLeft>(null);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchCapsule = async () => {
       try {
+        setLoading(true);
         const res = await fetch(`${API_URL}/api/capsules/recipient/${id}/${email}`);
         if (!res.ok) {
-          const data = await res.json();
+          const data = await res.json().catch(() => ({ message: "Access denied" }));
           setError(data.message || "Access denied");
           return;
         }
         const data = await res.json();
         setCapsule(data);
 
+        // View tracking now happens automatically in the backend GET request
+        // No separate POST request needed - this eliminates the race condition
+
         // Only fetch memories if unlocked
         if (!data.isLocked) {
-          const memRes = await fetch(`${API_URL}/api/capsules/recipient/${id}/${email}/memories`);
-          if (memRes.ok) {
-            const memData = await memRes.json();
-            setMemories(memData);
+          try {
+            const memRes = await fetch(`${API_URL}/api/capsules/recipient/${id}/${email}/memories`);
+            if (memRes.ok) {
+              const memData = await memRes.json();
+              // Ensure memData is an array before setting it
+              setMemories(Array.isArray(memData) ? memData : []);
+            } else {
+              console.warn('Failed to fetch memories:', memRes.status);
+              setMemories([]);
+            }
+          } catch (memError) {
+            console.error('Error fetching memories:', memError);
+            setMemories([]);
           }
+        } else {
+          setMemories([]);
         }
       } catch (err) {
+        console.error('Error fetching capsule:', err);
         setError("Failed to load capsule");
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchCapsule();
-  }, [id, email]);
+    if (id && email) {
+      fetchCapsule();
+    }
+  }, [id, email]); // Simplified dependencies - no more hasTrackedView
 
   useEffect(() => {
     if (!capsule?.unlockAt || !capsule?.isLocked) return;
@@ -74,13 +96,43 @@ export default function RecipientView() {
     return () => clearInterval(interval);
   }, [capsule]);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    );
+  }
+
   if (error) {
+    const isExpired = error.includes("expired");
+    const isDestroyed = error.includes("viewed once") || error.includes("destroyed");
+    
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
-        <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-8 text-center">
-          <div className="text-6xl mb-4">🔒</div>
-          <h2 className="text-2xl font-bold text-red-400 mb-2">Access Denied</h2>
+        <div className={`border rounded-2xl p-8 text-center ${
+          isExpired ? "bg-orange-500/10 border-orange-500/30" :
+          isDestroyed ? "bg-red-500/10 border-red-500/30" :
+          "bg-red-500/10 border-red-500/30"
+        }`}>
+          <div className="text-6xl mb-4">
+            {isExpired ? "⏰" : isDestroyed ? "💥" : "🔒"}
+          </div>
+          <h2 className={`text-2xl font-bold mb-2 ${
+            isExpired ? "text-orange-400" :
+            isDestroyed ? "text-red-400" :
+            "text-red-400"
+          }`}>
+            {isExpired ? "Capsule Expired" : 
+             isDestroyed ? "Capsule Destroyed" : 
+             "Access Denied"}
+          </h2>
           <p className="text-gray-400">{error}</p>
+          {(isExpired || isDestroyed) && (
+            <p className="text-gray-500 text-sm mt-4">
+              This capsule is no longer accessible. Thank you for being part of this memory!
+            </p>
+          )}
         </div>
       </div>
     );
@@ -89,7 +141,7 @@ export default function RecipientView() {
   if (!capsule) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
+        <div className="text-white text-xl">Capsule not found</div>
       </div>
     );
   }
@@ -120,6 +172,27 @@ export default function RecipientView() {
             </div>
           )}
         </motion.div>
+
+        {/* View Once Warning */}
+        {capsule.isViewOnce && !capsule.isLocked && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-red-500/20 border-2 border-red-500/50 rounded-2xl p-6 mb-6 text-center"
+          >
+            <div className="flex items-center justify-center gap-2 text-red-300 font-bold text-lg mb-2">
+              <span>🔥</span>
+              <span>VIEW ONCE CAPSULE</span>
+              <span>🔥</span>
+            </div>
+            <p className="text-red-200 font-semibold">
+              ⚠️ This capsule will be DESTROYED after you view it once!
+            </p>
+            <p className="text-red-300 text-sm mt-2">
+              Once you close this page or refresh, this capsule will no longer be accessible.
+            </p>
+          </motion.div>
+        )}
 
         {/* Locked View */}
         {capsule.isLocked && (
@@ -173,7 +246,7 @@ export default function RecipientView() {
         {!capsule.isLocked && (
           <div className="space-y-6">
             <h2 className="text-2xl font-bold mb-4">Memories</h2>
-            {memories.length === 0 ? (
+            {!Array.isArray(memories) || memories.length === 0 ? (
               <p className="text-center text-gray-400 py-8">No memories in this capsule</p>
             ) : (
               memories.map((m) => (

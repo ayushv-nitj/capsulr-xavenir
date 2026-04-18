@@ -71,7 +71,31 @@ export default function RecipientDashboard() {
   // Set up Pusher real-time events
   usePusher(email as string, {
     onCapsuleShared: handleCapsuleShared,
-    onCapsuleUnlocked: handleCapsuleUnlocked
+    onCapsuleUnlocked: handleCapsuleUnlocked,
+    onCapsuleExpired: (data: any) => {
+      console.log('Capsule expired for recipient:', data);
+      // Refresh capsules to update the UI
+      const fetchCapsules = async () => {
+        try {
+          const res = await fetch(`${API_URL}/api/capsules/recipient-list/${email}`);
+          if (res.ok) {
+            const data = await res.json();
+            setCapsules(data);
+          }
+        } catch (err) {
+          console.error("Failed to fetch capsules");
+        }
+      };
+      fetchCapsules();
+      
+      // Show notification
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        new Notification('Capsule Expired!', {
+          body: data.message,
+          icon: '/favicon.ico'
+        });
+      }
+    }
   });
 
   // Request notification permission
@@ -136,7 +160,7 @@ export default function RecipientDashboard() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
+          className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8"
         >
           <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
             <div className="flex items-center gap-4">
@@ -144,7 +168,7 @@ export default function RecipientDashboard() {
                 📦
               </div>
               <div>
-                <p className="text-gray-400 text-sm">Total Capsules</p>
+                <p className="text-gray-400 text-sm">Total</p>
                 <p className="text-3xl font-bold text-white">{capsules.length}</p>
               </div>
             </div>
@@ -172,7 +196,42 @@ export default function RecipientDashboard() {
               <div>
                 <p className="text-gray-400 text-sm">Unlocked</p>
                 <p className="text-3xl font-bold text-white">
-                  {capsules.filter(c => !c.isLocked).length}
+                  {capsules.filter(c => !c.isLocked && 
+                    !(c.isViewOnce && c.recipientViews?.some((v: any) => v.email === email)) &&
+                    !(c.recipientViews?.find((v: any) => v.email === email)?.expiresAt && 
+                      new Date() > new Date(c.recipientViews.find((v: any) => v.email === email).expiresAt))
+                  ).length}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center text-3xl">
+                ⏰
+              </div>
+              <div>
+                <p className="text-gray-400 text-sm">Expired</p>
+                <p className="text-3xl font-bold text-white">
+                  {capsules.filter(c => {
+                    const userView = c.recipientViews?.find((v: any) => v.email === email);
+                    return userView && userView.expiresAt && new Date() > new Date(userView.expiresAt);
+                  }).length}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-pink-500 rounded-xl flex items-center justify-center text-3xl">
+                💥
+              </div>
+              <div>
+                <p className="text-gray-400 text-sm">Destroyed</p>
+                <p className="text-3xl font-bold text-white">
+                  {capsules.filter(c => c.isViewOnce && c.recipientViews?.some((v: any) => v.email === email)).length}
                 </p>
               </div>
             </div>
@@ -239,14 +298,25 @@ function CapsuleCard({ capsule, timeLeft, email, index, tick, onClick }: any) {
 
   const gradient = gradients[index % gradients.length];
 
+  // Check if capsule is destroyed for this recipient (view-once and already viewed)
+  const isDestroyed = capsule.isViewOnce && 
+    capsule.recipientViews && 
+    capsule.recipientViews.some((view: any) => view.email === email);
+
+  // Check if capsule is expired for this recipient
+  const userView = capsule.recipientViews?.find((view: any) => view.email === email);
+  const isExpired = userView && userView.expiresAt && new Date() > new Date(userView.expiresAt);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      whileHover={{ y: -8, scale: 1.02 }}
-      onClick={onClick}
-      className="group relative rounded-2xl overflow-hidden cursor-pointer shadow-xl hover:shadow-2xl transition-all"
+      whileHover={!isDestroyed && !isExpired ? { y: -8, scale: 1.02 } : {}}
+      onClick={!isDestroyed && !isExpired ? onClick : undefined}
+      className={`group relative rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all ${
+        isDestroyed || isExpired ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
+      }`}
     >
       {/* Gradient Background */}
       <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-90 group-hover:opacity-100 transition-opacity`} />
@@ -258,7 +328,15 @@ function CapsuleCard({ capsule, timeLeft, email, index, tick, onClick }: any) {
             <h3 className="text-2xl font-bold text-white flex-1 leading-tight">
               {capsule.title}
             </h3>
-            {capsule.isLocked ? (
+            {isDestroyed ? (
+              <span className="px-3 py-1 rounded-full bg-red-500/30 border border-red-400/50 text-red-100 text-xs font-semibold backdrop-blur-sm">
+                💥 Destroyed
+              </span>
+            ) : isExpired ? (
+              <span className="px-3 py-1 rounded-full bg-orange-500/30 border border-orange-400/50 text-orange-100 text-xs font-semibold backdrop-blur-sm">
+                ⏰ Expired
+              </span>
+            ) : capsule.isLocked ? (
               <span className="px-3 py-1 rounded-full bg-red-500/20 border border-red-400/30 text-red-100 text-xs font-semibold backdrop-blur-sm">
                 🔒 Locked
               </span>
@@ -305,7 +383,11 @@ function CapsuleCard({ capsule, timeLeft, email, index, tick, onClick }: any) {
 
         <div>
           <p className="text-sm text-white/80 mt-4">
-            {capsule.isLocked
+            {isDestroyed
+              ? "💥 This capsule has been destroyed (view-once)"
+              : isExpired
+              ? "⏰ This capsule has expired"
+              : capsule.isLocked
               ? `Unlocks: ${new Date(capsule.unlockAt).toLocaleString()}`
               : "🔓 Available now - Click to view"}
           </p>

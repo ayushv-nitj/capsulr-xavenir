@@ -47,6 +47,8 @@ setInterval(async () => {
   const pusher = require("./config/pusher");
   
   const now = new Date();
+  
+  // 1. Auto-unlock capsules
   const capsulestoUnlock = await Capsule.find({
     isLocked: true,
     unlockAt: { $lte: now }
@@ -93,7 +95,6 @@ setInterval(async () => {
           message: `🎉 "${capsule.title}" has unlocked!`
         });
       }
-      console.log(`Unlock notifications sent to: ${notifyEmails.join(', ')}`);
     } catch (error) {
       console.error('Error sending unlock notifications:', error);
     }
@@ -110,6 +111,50 @@ setInterval(async () => {
             <p><a href="http://localhost:3000/recipient/${capsule._id}/${email}">View Capsule</a></p>
           `
         });
+      }
+    }
+  }
+
+  // 2. Handle expired capsules (send notifications)
+  const expiredCapsules = await Capsule.find({
+    isDestroyed: false,
+    recipientViews: {
+      $elemMatch: {
+        expiresAt: { $lte: now }
+      }
+    }
+  });
+
+  for (const capsule of expiredCapsules) {
+    // Find expired views
+    const expiredViews = capsule.recipientViews.filter(view => 
+      view.expiresAt && new Date(view.expiresAt) <= now
+    );
+
+    for (const view of expiredViews) {
+      try {
+        // Send real-time expiry notification
+        await pusher.trigger(`user-${view.email}`, 'capsule-expired', {
+          capsule: {
+            _id: capsule._id,
+            title: capsule.title,
+            theme: capsule.theme
+          },
+          message: `⏰ "${capsule.title}" has expired and is no longer accessible`
+        });
+
+        // Send email notification
+        await sendEmail({
+          to: view.email,
+          subject: "⏰ Time Capsule Expired",
+          html: `
+            <h2>Capsule Expired</h2>
+            <p>The time capsule <b>"${capsule.title}"</b> has expired and is no longer accessible.</p>
+            <p>Thank you for being part of this memory!</p>
+          `
+        });
+      } catch (error) {
+        console.error('Error sending expiry notifications:', error);
       }
     }
   }

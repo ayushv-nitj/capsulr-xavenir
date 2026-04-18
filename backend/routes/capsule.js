@@ -397,8 +397,9 @@ router.post("/:id/notify-recipients", auth, async (req, res) => {
 router.get("/recipient/:id/:email", async (req, res) => {
   try {
     const { id, email } = req.params;
+    console.log(`🔍 Recipient ${email} accessing capsule ${id}`);
     
-    const capsule = await Capsule.findById(id)
+    let capsule = await Capsule.findById(id)
       .populate("contributors", "name email profileImage")
       .populate("owner", "name email profileImage");
       
@@ -409,6 +410,15 @@ router.get("/recipient/:id/:email", async (req, res) => {
     // Verify email is a recipient
     if (!capsule.recipients || !capsule.recipients.includes(email)) {
       return res.status(403).json({ message: "Not authorized" });
+    }
+
+    console.log(`📋 Capsule info - isViewOnce: ${capsule.isViewOnce}, recipientViews: ${capsule.recipientViews?.length || 0}`);
+    console.log(`📋 Recipient views:`, JSON.stringify(capsule.recipientViews, null, 2));
+
+    // Check if capsule is destroyed for this recipient
+    if (capsule.isDestroyed) {
+      console.log(`💥 Capsule is destroyed`);
+      return res.status(410).json({ message: "This capsule has been destroyed" });
     }
 
     // Auto-unlock if time passed
@@ -455,10 +465,149 @@ router.get("/recipient/:id/:email", async (req, res) => {
       }
     }
 
+    // 🔥 ATOMIC VIEW TRACKING FOR VIEW-ONCE CAPSULES
+    // This prevents race conditions by checking and tracking views in a single atomic operation
+    if (capsule.isViewOnce && !capsule.isLocked) {
+      console.log(`🔥 View-once capsule - checking for existing view atomically`);
+      
+      // Check if already viewed
+      const existingView = capsule.recipientViews.find(view => view.email === email);
+      
+      if (existingView) {
+        console.log(`🔥 View-once capsule already viewed by ${email} at ${existingView.viewedAt} - blocking access`);
+        return res.status(410).json({ 
+          message: "This capsule can only be viewed once and has already been viewed" 
+        });
+      }
+      
+      // First view - atomically add view record using findOneAndUpdate
+      // This ensures only ONE concurrent request can add the view
+      const viewedAt = new Date();
+      let expiresAt = null;
+      
+      if (capsule.expiryDuration) {
+        expiresAt = new Date(viewedAt.getTime() + (capsule.expiryDuration * 60 * 60 * 1000));
+        console.log(`⏰ Setting expiry for ${email}: ${expiresAt}`);
+      }
+      
+      console.log(`📊 Attempting atomic view tracking for ${email}`);
+      const updatedCapsule = await Capsule.findOneAndUpdate(
+        {
+          _id: id,
+          recipients: email,
+          'recipientViews.email': { $ne: email } // Ensure no existing view (atomic check)
+        },
+        {
+          $push: {
+            recipientViews: {
+              email,
+              viewedAt,
+              expiresAt
+            }
+          }
+        },
+        { new: true }
+      ).populate("contributors", "name email profileImage")
+        .populate("owner", "name email profileImage");
+      
+      // If update failed, another request already added the view (race condition handled)
+      if (!updatedCapsule) {
+        console.log(`🔥 Atomic update failed - view already exists (concurrent request) - blocking access`);
+        return res.status(410).json({ 
+          message: "This capsule can only be viewed once and has already been viewed" 
+        });
+      }
+      
+      console.log(`✅ View tracked atomically for ${email} - first and only view allowed`);
+      console.log(`💥 Capsule will now appear as DESTROYED in dashboard for ${email}`);
+      capsule = updatedCapsule;
+    }
+    
+    // For non-view-once capsules with expiry, track view for expiry calculation
+    if (!capsule.isViewOnce && capsule.expiryDuration && !capsule.isLocked) {
+      const existingView = capsule.recipientViews.find(view => view.email === email);
+      
+      if (!existingView) {
+        // Track first view for expiry timer (but allow multiple accesses)
+        const viewedAt = new Date();
+        const expiresAt = new Date(viewedAt.getTime() + (capsule.expiryDuration * 60 * 60 * 1000));
+        
+        console.log(`⏰ Tracking first view for expiry (non-view-once) - expires at ${expiresAt}`);
+        await Capsule.findByIdAndUpdate(id, {
+          $push: {
+            recipientViews: { email, viewedAt, expiresAt }
+          }
+        });
+      }
+      
+      // Check if expired
+      if (existingView && existingView.expiresAt && new Date() > existingView.expiresAt) {
+        console.log(`⏰ Capsule expired for ${email}`);
+        return res.status(410).json({ message: "This capsule has expired" });
+      }
+    }
+
     // Return capsule data (frontend will handle locked state)
     res.json(capsule);
   } catch (err) {
+    console.error('❌ Error in recipient GET route:', err);
     res.status(500).json({ message: "Failed to fetch capsule" });
+  }
+});
+
+// TRACK RECIPIENT VIEW (DEPRECATED - view tracking now happens in GET request)
+// Kept for backward compatibility, but now idempotent
+router.post("/recipient/:id/:email/view", async (req, res) => {
+  try {
+    const { id, email } = req.params;
+    console.log(`📊 [DEPRECATED] POST view tracking called for capsule ${id} by ${email}`);
+    console.log(`ℹ️  View tracking now happens automatically in GET request`);
+    
+    const capsule = await Capsule.findById(id);
+    if (!capsule) {
+      return res.status(404).json({ message: "Capsule not found" });
+    }
+
+    // Verify email is a recipient
+    if (!capsule.recipients || !capsule.recipients.includes(email)) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    // Check if already tracked
+    const existingView = capsule.recipientViews.find(view => view.email === email);
+    
+    if (existingView) {
+      console.log(`👁️ View already tracked at ${existingView.viewedAt} - returning existing data`);
+      return res.json({ 
+        message: "Already tracked", 
+        viewedAt: existingView.viewedAt,
+        expiresAt: existingView.expiresAt,
+        isViewOnce: capsule.isViewOnce
+      });
+    }
+
+    // If somehow called before GET (shouldn't happen with new frontend), track the view
+    const viewedAt = new Date();
+    let expiresAt = null;
+
+    if (capsule.expiryDuration) {
+      expiresAt = new Date(viewedAt.getTime() + (capsule.expiryDuration * 60 * 60 * 1000));
+      console.log(`⏰ Expiry set for ${email}: ${expiresAt}`);
+    }
+
+    capsule.recipientViews.push({ email, viewedAt, expiresAt });
+    await capsule.save();
+    console.log(`✅ View tracked via POST (fallback) for ${email}`);
+
+    res.json({ 
+      message: "View tracked", 
+      viewedAt, 
+      expiresAt,
+      isViewOnce: capsule.isViewOnce 
+    });
+  } catch (err) {
+    console.error('❌ Error tracking view:', err);
+    res.status(500).json({ message: "Failed to track view" });
   }
 });
 
@@ -483,9 +632,37 @@ router.get("/recipient/:capsuleId/:email/memories", async (req, res) => {
 
     const Memory = require("../models/Memory");
     const memories = await Memory.find({ capsuleId });
-    res.json(memories);
+    
+    // Ensure we always return an array
+    res.json(Array.isArray(memories) ? memories : []);
   } catch (err) {
+    console.error('Error fetching recipient memories:', err);
     res.status(500).json({ message: "Failed to fetch memories" });
+  }
+});
+
+// DEBUG: Check capsule view status
+router.get("/debug/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const capsule = await Capsule.findById(id);
+    
+    if (!capsule) {
+      return res.status(404).json({ message: "Capsule not found" });
+    }
+
+    res.json({
+      id: capsule._id,
+      title: capsule.title,
+      isViewOnce: capsule.isViewOnce,
+      expiryDuration: capsule.expiryDuration,
+      recipientViews: capsule.recipientViews,
+      recipients: capsule.recipients,
+      isLocked: capsule.isLocked,
+      isDestroyed: capsule.isDestroyed
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

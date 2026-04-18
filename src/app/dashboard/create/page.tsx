@@ -13,6 +13,11 @@ export default function CreateCapsule() {
   const [unlockTime, setUnlockTime] = useState("12:00");
   const [recipientEmail, setRecipientEmail] = useState("");
   const [recipients, setRecipients] = useState<string[]>([]);
+  
+  // New fields for view once and expiry
+  const [isViewOnce, setIsViewOnce] = useState(false);
+  const [expiryDuration, setExpiryDuration] = useState("");
+  const [expiryUnit, setExpiryUnit] = useState("hours");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -53,6 +58,15 @@ export default function CreateCapsule() {
     const localDate = new Date(`${unlockDate}T${unlockTime}`);
     const unlockAt = localDate.toISOString();
 
+    // Calculate expiry duration in hours
+    let expiryDurationHours = null;
+    if (expiryDuration && parseFloat(expiryDuration) > 0) {
+      const duration = parseFloat(expiryDuration);
+      expiryDurationHours = expiryUnit === "hours" ? duration : 
+                           expiryUnit === "days" ? duration * 24 : 
+                           expiryUnit === "weeks" ? duration * 24 * 7 : duration;
+    }
+
     const res = await fetch(`${API_URL}/api/capsules`, {
       method: "POST",
       headers: {
@@ -65,6 +79,8 @@ export default function CreateCapsule() {
         unlockType: "date",
         unlockAt,
         recipients,
+        isViewOnce,
+        expiryDuration: expiryDurationHours,
       }),
     });
 
@@ -234,6 +250,63 @@ export default function CreateCapsule() {
                       ))}
                     </div>
                   )}
+                </div>
+
+                {/* Advanced Options */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-white border-b border-white/10 pb-2">
+                    Advanced Options
+                  </h3>
+
+                  {/* View Once Option */}
+                  <div className="flex items-start gap-3 p-4 rounded-xl bg-slate-800/30 border border-white/10">
+                    <input
+                      type="checkbox"
+                      id="viewOnce"
+                      checked={isViewOnce}
+                      onChange={(e) => setIsViewOnce(e.target.checked)}
+                      className="mt-1 w-4 h-4 text-purple-600 bg-slate-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
+                    />
+                    <div className="flex-1">
+                      <label htmlFor="viewOnce" className="text-sm font-medium text-white cursor-pointer">
+                        🔥 View Once
+                      </label>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Recipients can only view this capsule once. After viewing, it will be destroyed for them.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Expiry Duration */}
+                  <div className="p-4 rounded-xl bg-slate-800/30 border border-white/10">
+                    <label className="block text-sm font-medium text-white mb-2">
+                      ⏰ Auto-Expiry (Optional)
+                    </label>
+                    <p className="text-xs text-gray-400 mb-3">
+                      Automatically destroy the capsule for recipients after this duration from their first view
+                    </p>
+                    
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        placeholder="Duration"
+                        value={expiryDuration}
+                        onChange={(e) => setExpiryDuration(e.target.value)}
+                        min="1"
+                        step="0.5"
+                        className="flex-1 px-4 py-3 rounded-xl bg-slate-700/50 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-all"
+                      />
+                      <select
+                        value={expiryUnit}
+                        onChange={(e) => setExpiryUnit(e.target.value)}
+                        className="px-4 py-3 rounded-xl bg-slate-700/50 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-all"
+                      >
+                        <option value="hours">Hours</option>
+                        <option value="days">Days</option>
+                        <option value="weeks">Weeks</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Error Message */}

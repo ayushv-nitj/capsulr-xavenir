@@ -16,7 +16,7 @@ export default function Dashboard() {
   const router = useRouter();
   const [capsules, setCapsules] = useState<any[]>([]);
   const [query, setQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState<"all" | "locked" | "unlocked">("all");
+  const [filterStatus, setFilterStatus] = useState<"all" | "locked" | "unlocked" | "expired" | "destroyed">("all");
 
   // tick state so countdowns update each second
   const [, setTick] = useState(0);
@@ -66,11 +66,34 @@ export default function Dashboard() {
     }
   }, []);
 
+  const handleCapsuleExpired = useCallback((data: any) => {
+    console.log('Capsule expired:', data);
+    // Refresh capsules to update the UI
+    const fetchCapsules = async () => {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/capsules`, {
+        headers: { Authorization: token || "" },
+      });
+      const capsuleData = await res.json();
+      setCapsules(capsuleData);
+    };
+    fetchCapsules();
+    
+    // Show notification
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      new Notification('Capsule Expired!', {
+        body: data.message,
+        icon: '/favicon.ico'
+      });
+    }
+  }, []);
+
   // Set up Pusher real-time events
   usePusher(email, {
     onCapsuleCreated: handleCapsuleCreated,
     onCapsuleShared: handleCapsuleShared,
-    onCapsuleUnlocked: handleCapsuleUnlocked
+    onCapsuleUnlocked: handleCapsuleUnlocked,
+    onCapsuleExpired: handleCapsuleExpired
   });
 
   // Request notification permission
@@ -79,6 +102,19 @@ export default function Dashboard() {
       Notification.requestPermission();
     }
   }, []);
+
+  // Helper functions for capsule status
+  const isExpiredForUser = (capsule: any) => {
+    if (!capsule.recipientViews || !email) return false;
+    const userView = capsule.recipientViews.find((view: any) => view.email === email);
+    return userView && userView.expiresAt && new Date() > new Date(userView.expiresAt);
+  };
+
+  const isDestroyedForUser = (capsule: any) => {
+    if (!capsule.isViewOnce || !capsule.recipientViews || !email) return false;
+    const userView = capsule.recipientViews.find((view: any) => view.email === email);
+    return userView !== undefined; // If viewed and it's view-once, it's destroyed
+  };
 
 function getTimeLeft(unlockAt: string) {
   const unlockTime = new Date(unlockAt).getTime();
@@ -143,8 +179,24 @@ function getTimeLeft(unlockAt: string) {
       c.title?.toLowerCase().includes(query.toLowerCase()) ||
       c.theme?.toLowerCase().includes(query.toLowerCase());
     
+    // Helper function to check if capsule is expired for current user
+    const isExpired = () => {
+      if (!c.recipientViews || !email) return false;
+      const userView = c.recipientViews.find((view: any) => view.email === email);
+      return userView && userView.expiresAt && new Date() > new Date(userView.expiresAt);
+    };
+
+    // Helper function to check if capsule is destroyed for current user
+    const isDestroyed = () => {
+      if (!c.isViewOnce || !c.recipientViews || !email) return false;
+      const userView = c.recipientViews.find((view: any) => view.email === email);
+      return userView !== undefined; // If viewed and it's view-once, it's destroyed
+    };
+    
     if (filterStatus === "locked") return matchesQuery && c.isLocked;
-    if (filterStatus === "unlocked") return matchesQuery && !c.isLocked;
+    if (filterStatus === "unlocked") return matchesQuery && !c.isLocked && !isExpired() && !isDestroyed();
+    if (filterStatus === "expired") return matchesQuery && isExpired();
+    if (filterStatus === "destroyed") return matchesQuery && isDestroyed();
     return matchesQuery;
   });
 
@@ -249,14 +301,14 @@ function getTimeLeft(unlockAt: string) {
                 </div>
 
                 {/* Filter Buttons */}
-                <div className="flex gap-2">
-                  {["all", "locked", "unlocked"].map((status) => (
+                <div className="flex gap-2 flex-wrap">
+                  {["all", "locked", "unlocked", "expired", "destroyed"].map((status) => (
                     <motion.button
                       key={status}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setFilterStatus(status as any)}
-                      className={`px-6 py-3 rounded-xl font-medium transition-all ${
+                      className={`px-4 py-2 rounded-xl font-medium transition-all text-sm ${
                         filterStatus === status
                           ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg"
                           : "bg-slate-800/50 text-gray-300 hover:bg-slate-700/50 border border-white/10"
@@ -265,6 +317,8 @@ function getTimeLeft(unlockAt: string) {
                       {status === "all" && "All"}
                       {status === "locked" && "🔒 Locked"}
                       {status === "unlocked" && "🔓 Unlocked"}
+                      {status === "expired" && "⏰ Expired"}
+                      {status === "destroyed" && "💥 Destroyed"}
                     </motion.button>
                   ))}
                 </div>
@@ -278,11 +332,11 @@ function getTimeLeft(unlockAt: string) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
+          className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8"
         >
           <StatsCard
             icon="📦"
-            label="Total Capsules"
+            label="Total"
             value={capsules.length}
             gradient="from-blue-500 to-cyan-500"
           />
@@ -295,8 +349,20 @@ function getTimeLeft(unlockAt: string) {
           <StatsCard
             icon="🔓"
             label="Unlocked"
-            value={capsules.filter((c) => !c.isLocked).length}
+            value={capsules.filter((c) => !c.isLocked && !isExpiredForUser(c) && !isDestroyedForUser(c)).length}
             gradient="from-emerald-500 to-teal-500"
+          />
+          <StatsCard
+            icon="⏰"
+            label="Expired"
+            value={capsules.filter((c) => isExpiredForUser(c)).length}
+            gradient="from-orange-500 to-red-500"
+          />
+          <StatsCard
+            icon="💥"
+            label="Destroyed"
+            value={capsules.filter((c) => isDestroyedForUser(c)).length}
+            gradient="from-red-500 to-pink-500"
           />
         </motion.div>
 

@@ -150,14 +150,26 @@ export default function CapsulePage() {
       const res = await fetch(`${API_URL}/api/memories/${id}`, {
         headers: { Authorization: token || "" },
       });
+      
+      if (!res.ok) {
+        console.error(`Failed to fetch memories: ${res.status} ${res.statusText}`);
+        setMemories([]);
+        return;
+      }
+      
       const data = await res.json();
-      setMemories(data);
+      // Ensure data is an array before setting it
+      const memoriesArray = Array.isArray(data) ? data : [];
+      setMemories(memoriesArray);
 
       // Fetch reactions and comments for each memory
-      for (const memory of data) {
+      for (const memory of memoriesArray) {
         fetchReactionsForMemory(memory._id);
         fetchCommentsForMemory(memory._id);
       }
+    } catch (error) {
+      console.error("Error fetching memories:", error);
+      setMemories([]);
     } finally {
       setLoading(false);
     }
@@ -827,7 +839,7 @@ const saveRecipients = async () => {
       <div className="space-y-6">
         {loading ? (
           <p className="text-gray-400 text-center py-8">Loading memories…</p>
-        ) : memories.length === 0 ? (
+        ) : !Array.isArray(memories) || memories.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-20 h-20 mx-auto mb-4 bg-purple-500/10 rounded-full flex items-center justify-center text-4xl">
               📝

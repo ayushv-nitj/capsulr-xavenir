@@ -5,6 +5,7 @@ export const usePusher = (userEmail: string | null, callbacks: {
   onCapsuleCreated?: (data: any) => void;
   onCapsuleShared?: (data: any) => void;
   onCapsuleUnlocked?: (data: any) => void;
+  onCapsuleExpired?: (data: any) => void;
 }) => {
   const [pusher, setPusher] = useState<Pusher | null>(null);
 
@@ -56,10 +57,15 @@ export const usePusher = (userEmail: string | null, callbacks: {
       channel.bind('capsule-unlocked', callbacks.onCapsuleUnlocked);
     }
 
+    // Listen for capsule expiry events
+    if (callbacks.onCapsuleExpired) {
+      channel.bind('capsule-expired', callbacks.onCapsuleExpired);
+    }
+
     // Cleanup on unmount
     return () => {
       channel.unbind_all();
       pusher.unsubscribe(channelName);
     };
-  }, [userEmail, pusher, callbacks.onCapsuleCreated, callbacks.onCapsuleShared, callbacks.onCapsuleUnlocked]);
+  }, [userEmail, pusher, callbacks.onCapsuleCreated, callbacks.onCapsuleShared, callbacks.onCapsuleUnlocked, callbacks.onCapsuleExpired]);
 };
