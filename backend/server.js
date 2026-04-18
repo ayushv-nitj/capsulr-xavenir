@@ -6,16 +6,30 @@ require("dotenv").config();
 
 const app = express();
 
-// const cors = require("cors");
+// Get frontend URL from environment variable
+const FRONTEND_URL = process.env.SEND_URI || "http://localhost:3000";
+
+// Dynamic CORS configuration based on environment
+const allowedOrigins = [
+  "http://localhost:3000", // Local development
+  process.env.FRONTEND_URL, // Production frontend URL from env
+  "https://capsulr-five.vercel.app" // Your Vercel deployment
+].filter(Boolean); // Remove undefined values
 
 app.use(cors({
-  origin: [
-    "http://localhost:3000",
-    // IMPORTANT: no trailing slash here, CORS checks must match exactly
-    "https://capsulr-five.vercel.app"
-  ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Specify allowed methods
-  allowedHeaders: ['Content-Type', 'Authorization'] ,
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('Blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
 
@@ -109,7 +123,7 @@ setInterval(async () => {
           html: `
             <h2>Your capsule is ready!</h2>
             <p><b>${capsule.title}</b> has unlocked.</p>
-            <p><a href="http://localhost:3000/recipient/${capsule._id}/${email}">View Capsule</a></p>
+            <p><a href="${FRONTEND_URL}/recipient/${capsule._id}/${email}">View Capsule</a></p>
           `
         });
       }

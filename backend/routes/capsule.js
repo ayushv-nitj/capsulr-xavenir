@@ -7,6 +7,9 @@ const pusher = require("../config/pusher");
 
 const router = express.Router();
 
+// Get frontend URL from environment variable
+const FRONTEND_URL = process.env.SEND_URI || "http://localhost:3000";
+
 // simple auth middleware
 const auth = (req, res, next) => {
   const token = req.headers.authorization;
@@ -215,8 +218,8 @@ router.get("/:id", auth, async (req, res) => {
             html: `
               <h2>Your capsule is ready!</h2>
               <p><b>${capsule.title}</b> has unlocked and is ready to view!</p>
-              <p><a href="http://localhost:3000/recipient/${capsule._id}/${email}" style="display:inline-block;padding:12px 24px;background:#10b981;color:white;text-decoration:none;border-radius:8px;margin-top:16px;">Open Capsule</a></p>
-              <p style="margin-top:16px;"><a href="http://localhost:3000/recipient/dashboard/${email}" style="color:#8b5cf6;">View All Your Capsules</a></p>
+              <p><a href="${FRONTEND_URL}/recipient/${capsule._id}/${email}" style="display:inline-block;padding:12px 24px;background:#10b981;color:white;text-decoration:none;border-radius:8px;margin-top:16px;">Open Capsule</a></p>
+              <p style="margin-top:16px;"><a href="${FRONTEND_URL}/recipient/dashboard/${email}" style="color:#8b5cf6;">View All Your Capsules</a></p>
             `
           });
         }
@@ -329,7 +332,7 @@ router.post("/:id/collaborators", auth, async (req, res) => {
         <p><b>${capsule.title}</b> has been shared with you as a collaborator.</p>
         <p>It will unlock on: <b>${new Date(capsule.unlockAt).toLocaleString()}</b></p>
         <p>You can now add memories and edit the capsule!</p>
-        <p><a href="http://localhost:3000/dashboard" style="display:inline-block;padding:12px 24px;background:#8b5cf6;color:white;text-decoration:none;border-radius:8px;margin-top:16px;">View Your Dashboard</a></p>
+        <p><a href="${FRONTEND_URL}/dashboard" style="display:inline-block;padding:12px 24px;background:#8b5cf6;color:white;text-decoration:none;border-radius:8px;margin-top:16px;">View Your Dashboard</a></p>
       `
     });
 
@@ -382,7 +385,7 @@ router.post("/:id/notify-recipients", auth, async (req, res) => {
           <p><b>${capsule.title}</b> has been shared with you.</p>
           <p>It will unlock on: <b>${new Date(capsule.unlockAt).toLocaleDateString()}</b></p>
           <p>You'll receive another email when it unlocks!</p>
-          <p><a href="http://localhost:3000/dashboard" style="display:inline-block;padding:12px 24px;background:#8b5cf6;color:white;text-decoration:none;border-radius:8px;margin-top:16px;">View Your Dashboard</a></p>
+          <p><a href="${FRONTEND_URL}/dashboard" style="display:inline-block;padding:12px 24px;background:#8b5cf6;color:white;text-decoration:none;border-radius:8px;margin-top:16px;">View Your Dashboard</a></p>
         `
       });
     }
