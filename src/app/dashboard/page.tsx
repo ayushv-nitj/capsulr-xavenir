@@ -182,12 +182,14 @@ function getTimeLeft(unlockAt: string) {
   }, []);
 
   const gradients = [
-    "from-pink-500 via-rose-500 to-orange-500",
-    "from-indigo-500 via-purple-500 to-pink-500",
-    "from-green-500 via-emerald-500 to-teal-500",
-    "from-blue-500 via-cyan-500 to-sky-500",
-    "from-violet-500 via-purple-500 to-fuchsia-500",
-    "from-amber-500 via-orange-500 to-red-500",
+    "from-cyan-400 to-blue-500",
+    "from-purple-400 to-pink-500",
+    "from-green-400 to-emerald-500",
+    "from-orange-400 to-red-500",
+    "from-yellow-400 to-orange-500",
+    "from-pink-400 to-rose-500",
+    "from-indigo-400 to-purple-500",
+    "from-teal-400 to-cyan-500",
   ];
 
   const filtered = capsules.filter((c) => {
@@ -217,15 +219,17 @@ function getTimeLeft(unlockAt: string) {
   });
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
       {/* Animated Background */}
       <div className="fixed inset-0 z-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950"></div>
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-0 -left-4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob"></div>
-          <div className="absolute top-0 -right-4 w-96 h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000"></div>
-          <div className="absolute -bottom-8 left-20 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/20 via-slate-950 to-slate-950"></div>
+        <div className="absolute inset-0 opacity-30">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob"></div>
+          <div className="absolute top-0 right-1/4 w-96 h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000"></div>
+          <div className="absolute bottom-0 left-1/2 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000"></div>
         </div>
+        {/* Grid Pattern Overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
       </div>
 
       {/* Content */}
@@ -236,10 +240,14 @@ function getTimeLeft(unlockAt: string) {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <div className="bg-slate-900/50 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl overflow-hidden">
+          <div className="bg-slate-900/60 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl overflow-hidden">
             {/* Top Section */}
-            <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 p-6">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 p-6 relative overflow-hidden">
+              {/* Decorative Elements */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full blur-2xl"></div>
+              
+              <div className="relative flex flex-col md:flex-row items-center justify-between gap-4">
                 {/* Left: Profile & Branding */}
                 <div className="flex items-center gap-4">
                   <Link href="/profile" className="block group">
@@ -272,20 +280,30 @@ function getTimeLeft(unlockAt: string) {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
+                    onClick={() => router.push("/ghostwall")}
+                    className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-semibold px-5 py-3 rounded-full shadow-lg hover:shadow-xl transition-all border border-white/20"
+                  >
+                    <span className="text-xl">👻</span>
+                    <span className="hidden sm:inline">Ghost Wall</span>
+                  </motion.button>
+
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => router.push("/dashboard/create")}
-                    className="flex items-center gap-2 bg-white text-purple-600 font-semibold px-6 py-3 rounded-full shadow-lg hover:shadow-xl transition-all"
+                    className="flex items-center gap-2 bg-white text-purple-600 font-semibold px-6 py-3 rounded-full shadow-lg hover:shadow-xl transition-all hover:bg-purple-50"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
-                    Create Capsule
+                    <span className="hidden sm:inline">Create Capsule</span>
                   </motion.button>
 
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={logout}
-                    className="text-white/90 bg-white/10 hover:bg-white/20 px-4 py-3 rounded-full transition backdrop-blur-sm"
+                    className="text-white/90 bg-white/10 hover:bg-white/20 px-4 py-3 rounded-full transition backdrop-blur-sm border border-white/20"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -296,7 +314,7 @@ function getTimeLeft(unlockAt: string) {
             </div>
 
             {/* Bottom Section: Search & Filters */}
-            <div className="p-6 bg-slate-900/30 backdrop-blur-sm">
+            <div className="p-6 bg-gradient-to-b from-slate-900/40 to-slate-900/60 backdrop-blur-sm border-t border-white/5">
               <div className="flex flex-col md:flex-row gap-4">
                 {/* Search */}
                 <div className="flex-1 relative">
@@ -312,7 +330,7 @@ function getTimeLeft(unlockAt: string) {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Search capsules by title or theme..."
-                    className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-800/50 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
+                    className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-800/70 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all"
                   />
                 </div>
 
@@ -326,11 +344,11 @@ function getTimeLeft(unlockAt: string) {
                       onClick={() => setFilterStatus(status as any)}
                       className={`px-4 py-2 rounded-xl font-medium transition-all text-sm ${
                         filterStatus === status
-                          ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg"
-                          : "bg-slate-800/50 text-gray-300 hover:bg-slate-700/50 border border-white/10"
+                          ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/30"
+                          : "bg-slate-800/70 text-gray-300 hover:bg-slate-700/70 border border-white/10 hover:border-white/20"
                       }`}
                     >
-                      {status === "all" && "All"}
+                      {status === "all" && "✨ All"}
                       {status === "locked" && "🔒 Locked"}
                       {status === "unlocked" && "🔓 Unlocked"}
                       {status === "expired" && "⏰ Expired"}
@@ -354,31 +372,31 @@ function getTimeLeft(unlockAt: string) {
             icon="📦"
             label="Total"
             value={capsules.length}
-            gradient="from-blue-500 to-cyan-500"
+            gradient="from-blue-500 via-blue-600 to-indigo-600"
           />
           <StatsCard
             icon="🔒"
             label="Locked"
             value={capsules.filter((c) => c.isLocked).length}
-            gradient="from-purple-500 to-pink-500"
+            gradient="from-purple-500 via-purple-600 to-indigo-600"
           />
           <StatsCard
             icon="🔓"
             label="Unlocked"
             value={capsules.filter((c) => !c.isLocked && !isExpiredForUser(c) && !isDestroyedForUser(c)).length}
-            gradient="from-emerald-500 to-teal-500"
+            gradient="from-emerald-500 via-teal-500 to-cyan-600"
           />
           <StatsCard
             icon="⏰"
             label="Expired"
             value={capsules.filter((c) => isExpiredForUser(c)).length}
-            gradient="from-orange-500 to-red-500"
+            gradient="from-amber-500 via-orange-500 to-red-500"
           />
           <StatsCard
             icon="💥"
             label="Destroyed"
             value={capsules.filter((c) => isDestroyedForUser(c)).length}
-            gradient="from-red-500 to-pink-500"
+            gradient="from-rose-500 via-pink-500 to-fuchsia-600"
           />
         </motion.div>
 
@@ -389,10 +407,10 @@ function getTimeLeft(unlockAt: string) {
             animate={{ opacity: 1, scale: 1 }}
             className="text-center py-20"
           >
-            <div className="w-32 h-32 mx-auto mb-6 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center text-6xl">
+            <div className="w-32 h-32 mx-auto mb-6 bg-gradient-to-br from-purple-500/20 via-indigo-500/20 to-pink-500/20 rounded-full flex items-center justify-center text-6xl backdrop-blur-sm border border-white/10">
               📭
             </div>
-            <h3 className="text-2xl font-bold mb-2">No capsules found</h3>
+            <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-pink-400 text-transparent bg-clip-text">No capsules found</h3>
             <p className="text-gray-400 mb-6">
               {query ? "Try a different search term" : "Create your first time capsule to get started"}
             </p>
@@ -400,9 +418,9 @@ function getTimeLeft(unlockAt: string) {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => router.push("/dashboard/create")}
-              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full font-semibold shadow-lg"
+              className="px-8 py-4 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 rounded-full font-semibold shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all"
             >
-              Create Your First Capsule
+              ✨ Create Your First Capsule
             </motion.button>
           </motion.div>
         )}
@@ -475,14 +493,14 @@ function StatsCard({
   return (
     <motion.div
       whileHover={{ y: -5, scale: 1.02 }}
-      className="bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-white/10 p-6 shadow-xl"
+      className="bg-slate-900/60 backdrop-blur-xl rounded-2xl border border-white/10 p-6 shadow-xl hover:shadow-2xl transition-all group"
     >
       <div className="flex items-center gap-4">
-        <div className={`w-14 h-14 bg-gradient-to-br ${gradient} rounded-xl flex items-center justify-center text-3xl shadow-lg`}>
+        <div className={`w-14 h-14 bg-gradient-to-br ${gradient} rounded-xl flex items-center justify-center text-3xl shadow-lg group-hover:scale-110 transition-transform`}>
           {icon}
         </div>
         <div>
-          <p className="text-gray-400 text-sm">{label}</p>
+          <p className="text-gray-400 text-sm font-medium">{label}</p>
           <p className="text-3xl font-bold text-white">{value}</p>
         </div>
       </div>
@@ -554,10 +572,13 @@ function CapsuleCard({
       className="group relative rounded-2xl overflow-hidden cursor-pointer shadow-xl hover:shadow-2xl transition-all"
     >
       {/* Gradient Background */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-90 group-hover:opacity-100 transition-opacity`} />
+      <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-95 group-hover:opacity-100 transition-opacity`} />
+      
+      {/* Shine Effect */}
+      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
 
       {/* Content */}
-      <div className="relative p-6 bg-slate-900/40 backdrop-blur-sm min-h-70 flex flex-col justify-between">
+      <div className="relative p-6 bg-slate-900/50 backdrop-blur-md min-h-70 flex flex-col justify-between border border-white/10 rounded-2xl">
         {/* Top Section */}
         <div>
           <div className="flex items-start justify-between mb-4">
@@ -565,12 +586,12 @@ function CapsuleCard({
               {capsule.title}
             </h3>
             {capsule.isLocked && (
-              <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-red-500/20 border border-red-400/30 text-red-100 text-xs font-semibold backdrop-blur-sm">
+              <span className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-red-500/30 border border-red-300/50 text-white text-xs font-bold backdrop-blur-md shadow-lg">
                 🔒 Locked
               </span>
             )}
             {!capsule.isLocked && (
-              <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-100 text-xs font-semibold backdrop-blur-sm">
+              <span className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-emerald-500/30 border border-emerald-300/50 text-white text-xs font-bold backdrop-blur-md shadow-lg">
                 🔓 Open
               </span>
             )}
@@ -589,27 +610,27 @@ function CapsuleCard({
 
           {/* Countdown */}
           {timeLeft && (
-            <div className="mb-4 p-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20">
-              <p className="text-xs text-white/70 mb-1">Unlocks in:</p>
-              <div className="flex gap-2 text-white font-bold">
-                <div className="flex flex-col items-center">
+            <div className="mb-4 p-4 rounded-xl bg-white/15 backdrop-blur-md border border-white/30 shadow-lg">
+              <p className="text-xs text-white/90 mb-2 font-semibold">⏰ Unlocks in:</p>
+              <div className="flex gap-2 text-white font-bold justify-center">
+                <div className="flex flex-col items-center bg-white/10 rounded-lg px-2 py-1">
                   <span className="text-2xl">{timeLeft.days}</span>
-                  <span className="text-xs opacity-70">days</span>
+                  <span className="text-xs opacity-80">days</span>
                 </div>
-                <span className="text-2xl">:</span>
-                <div className="flex flex-col items-center">
+                <span className="text-2xl self-center">:</span>
+                <div className="flex flex-col items-center bg-white/10 rounded-lg px-2 py-1">
                   <span className="text-2xl">{timeLeft.hours}</span>
-                  <span className="text-xs opacity-70">hrs</span>
+                  <span className="text-xs opacity-80">hrs</span>
                 </div>
-                <span className="text-2xl">:</span>
-                <div className="flex flex-col items-center">
+                <span className="text-2xl self-center">:</span>
+                <div className="flex flex-col items-center bg-white/10 rounded-lg px-2 py-1">
                   <span className="text-2xl">{timeLeft.minutes}</span>
-                  <span className="text-xs opacity-70">min</span>
+                  <span className="text-xs opacity-80">min</span>
                 </div>
-                <span className="text-2xl">:</span>
-                <div className="flex flex-col items-center">
+                <span className="text-2xl self-center">:</span>
+                <div className="flex flex-col items-center bg-white/10 rounded-lg px-2 py-1">
                   <span className="text-2xl">{timeLeft.seconds}</span>
-                  <span className="text-xs opacity-70">sec</span>
+                  <span className="text-xs opacity-80">sec</span>
                 </div>
               </div>
             </div>
@@ -624,7 +645,7 @@ function CapsuleCard({
                 ? `Unlocks: ${new Date(capsule.unlockAt).toLocaleDateString()}`
                 : "🔓 Available now"}
             </p>
-            <span className="text-sm px-3 py-1 rounded-full bg-white/20 text-white font-semibold backdrop-blur-sm">
+            <span className="text-sm px-3 py-1.5 rounded-full bg-white/25 text-white font-bold backdrop-blur-md shadow-md border border-white/30">
               {capsule.contributors?.length || 0} 👥
             </span>
           </div>
@@ -643,7 +664,7 @@ function CapsuleCard({
                   <Link
                     href={`/dashboard/edit/${capsule._id}`}
                     onClick={(e) => e.stopPropagation()}
-                    className="flex-1 text-center py-2 rounded-lg bg-white/20 hover:bg-white/30 text-white text-sm font-medium transition backdrop-blur-sm border border-white/20"
+                    className="flex-1 text-center py-2.5 rounded-lg bg-white/25 hover:bg-white/35 text-white text-sm font-semibold transition-all backdrop-blur-md border border-white/30 shadow-md hover:shadow-lg"
                   >
                     ✏️ Edit
                   </Link>
@@ -656,7 +677,7 @@ function CapsuleCard({
                       e.stopPropagation();
                       onDelete();
                     }}
-                    className="flex-1 py-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-white text-sm font-medium transition backdrop-blur-sm border border-red-400/30"
+                    className="flex-1 py-2.5 rounded-lg bg-red-500/30 hover:bg-red-500/40 text-white text-sm font-semibold transition-all backdrop-blur-md border border-red-300/50 shadow-md hover:shadow-lg"
                   >
                     🗑️ Delete
                   </button>
@@ -664,7 +685,7 @@ function CapsuleCard({
 
                 {/* Recipients get a different button */}
                 {isRecipient && !isOwner && !isContributor && (
-                  <div className="flex-1 text-center py-2 rounded-lg bg-purple-500/20 text-purple-300 text-sm font-medium backdrop-blur-sm border border-purple-400/30">
+                  <div className="flex-1 text-center py-2.5 rounded-lg bg-purple-500/30 text-white text-sm font-semibold backdrop-blur-md border border-purple-300/50 shadow-md">
                     📧 View Only
                   </div>
                 )}
@@ -675,7 +696,10 @@ function CapsuleCard({
       </div>
 
       {/* Hover Glow */}
-      <div className="absolute inset-0 bg-gradient-to-t from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+      <div className="absolute inset-0 bg-gradient-to-t from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+      
+      {/* Border Glow on Hover */}
+      <div className="absolute inset-0 rounded-2xl ring-2 ring-white/0 group-hover:ring-white/20 transition-all pointer-events-none"></div>
     </motion.div>
   );
 }

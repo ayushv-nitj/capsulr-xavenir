@@ -27,6 +27,7 @@ app.use("/api/capsules", require("./routes/capsule"));
 app.use("/api/memories", require("./routes/memory"));
 app.use("/api/reactions", require("./routes/reaction"));
 app.use("/api/comments", require("./routes/comment"));
+app.use("/api/ghostwalls", require("./routes/ghostwall"));
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB connected"))
@@ -159,3 +160,20 @@ setInterval(async () => {
     }
   }
 }, 60000); // Check every minute
+
+// Auto-clean expired ghost wall messages every 5 minutes
+setInterval(async () => {
+  const GhostWall = require("./models/GhostWall");
+  
+  try {
+    const walls = await GhostWall.find({});
+    
+    for (const wall of walls) {
+      await wall.cleanExpiredMessages();
+    }
+    
+    console.log(`Cleaned expired messages from ${walls.length} ghost walls`);
+  } catch (error) {
+    console.error('Error cleaning expired messages:', error);
+  }
+}, 300000); // Check every 5 minutes
