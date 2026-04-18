@@ -6,12 +6,12 @@ const userSchema = new mongoose.Schema({
     type: String,
     unique: true
   },
-  password: String,
+  password: { type: String, default: null }, // null for Google OAuth users
+  googleId: { type: String, default: null },
   profileImage: {
-  type: String,
-  default: ""
-}
-
+    type: String,
+    default: ""
+  }
 });
 
 module.exports =

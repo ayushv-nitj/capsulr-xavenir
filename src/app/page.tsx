@@ -75,7 +75,7 @@ export default function LandingPage() {
             <motion.button
               whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(139, 92, 246, 0.5)" }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => router.push("/register")}
+              onClick={() => router.push("/login")}
               className="px-6 py-2 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white rounded-full shadow-lg hover:shadow-purple-500/50 transition-all"
             >
               Get Started
@@ -134,7 +134,7 @@ export default function LandingPage() {
               boxShadow: "0 0 40px rgba(139, 92, 246, 0.6)",
             }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => router.push("/register")}
+            onClick={() => router.push("/login")}
             className="px-10 py-5 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white text-lg font-semibold rounded-full shadow-2xl hover:shadow-purple-500/50 transition-all relative group"
           >
             <span className="relative z-10">Start Creating Capsules →</span>
@@ -260,7 +260,7 @@ export default function LandingPage() {
                   boxShadow: "0 0 40px rgba(139, 92, 246, 0.6)",
                 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => router.push("/register")}
+                onClick={() => router.push("/login")}
                 className="px-10 py-5 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white text-lg font-semibold rounded-full shadow-2xl hover:shadow-purple-500/50 transition-all"
               >
                 Start Your Journey Now →
